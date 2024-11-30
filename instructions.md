@@ -6,4 +6,5 @@
 
 1. Think through how we can update this package to remove the postgres dependency and wasm dependencies. What instructions do we need to follow to make sure we can deploy this to the digital ocean droplet? smallest size of digital ocean droplet 4GB.
 2. Update the ponder-join-indexer to use the modified functionality in ponder-lite-core instead of @ponder/core.
-3. Modify the ponder-lite-core package to remove PostgreSQL dependencies and only do indexing.
+3. Modify the ponder-lite-core package to remove PostgreSQL dependencies.
+4. Modify the core to focus only on indexing.
