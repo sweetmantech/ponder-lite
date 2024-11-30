@@ -1,12 +1,6 @@
 import http from "node:http";
 import type { Common } from "@/common/common.js";
-import type { Database } from "@/database/index.js";
-import { graphql } from "@/graphql/middleware.js";
 import { type PonderRoutes, applyHonoRoutes } from "@/hono/index.js";
-import {
-  getLiveMetadataStore,
-  getMetadataStore,
-} from "@/indexing-store/metadata.js";
 import { startClock } from "@/utils/timer.js";
 import { serve } from "@hono/node-server";
 import type { GraphQLSchema } from "graphql";
@@ -27,25 +21,15 @@ export async function createServer({
   routes: userRoutes,
   common,
   graphqlSchema,
-  database,
   instanceId,
 }: {
   app: Hono;
   routes: PonderRoutes;
   common: Common;
   graphqlSchema: GraphQLSchema;
-  database: Database;
   instanceId?: string;
 }): Promise<Server> {
   // Create hono app
-
-  const metadataStore =
-    instanceId === undefined
-      ? getLiveMetadataStore({ db: database.qb.readonly })
-      : getMetadataStore({
-          db: database.qb.readonly,
-          instanceId,
-        });
 
   const metricsMiddleware = createMiddleware(async (c, next) => {
     const matchedPathLabels = c.req.matchedRoutes
@@ -91,14 +75,6 @@ export async function createServer({
     }
   });
 
-  // context required for graphql middleware and hono middleware
-  const contextMiddleware = createMiddleware(async (c, next) => {
-    c.set("db", database.drizzle);
-    c.set("metadataStore", metadataStore);
-    c.set("graphqlSchema", graphqlSchema);
-    await next();
-  });
-
   const hono = new Hono()
     .use(metricsMiddleware)
     .use(cors({ origin: "*", maxAge: 86400 }))
@@ -114,32 +90,18 @@ export async function createServer({
       return c.text("", 200);
     })
     .get("/ready", async (c) => {
-      const status = await metadataStore.getStatus();
-
-      if (
-        status !== null &&
-        Object.values(status).every(({ ready }) => ready === true)
-      ) {
-        return c.text("", 200);
-      }
-
-      return c.text("Historical indexing is not complete.", 503);
+      return c.text("", 200);
     })
     .get("/status", async (c) => {
-      const status = await metadataStore.getStatus();
-
-      return c.json(status);
-    })
-    .use(contextMiddleware);
+      return c.json({});
+    });
 
   if (userRoutes.length === 0 && userApp.routes.length === 0) {
-    // apply graphql middleware if no custom api exists
-    hono.use("/graphql", graphql());
-    hono.use("/", graphql());
+    // No custom API, just return metrics and health endpoints
   } else {
     // apply user routes to hono instance, registering a custom error handler
-    applyHonoRoutes(hono, userRoutes, { db: database.drizzle }).onError(
-      (error, c) => onError(error, c, common),
+    applyHonoRoutes(hono, userRoutes).onError((error, c) =>
+      onError(error, c, common),
     );
 
     common.logger.debug({

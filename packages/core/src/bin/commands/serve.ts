@@ -4,7 +4,6 @@ import { createLogger } from "@/common/logger.js";
 import { MetricsService } from "@/common/metrics.js";
 import { buildOptions } from "@/common/options.js";
 import { buildPayload, createTelemetry } from "@/common/telemetry.js";
-import { createDatabase } from "@/database/index.js";
 import { createServer } from "@/server/index.js";
 import type { CliOptions } from "../ponder.js";
 import { setupShutdown } from "../utils/shutdown.js";
@@ -67,33 +66,13 @@ export async function serve({ cliOptions }: { cliOptions: CliOptions }) {
     },
   });
 
-  const { databaseConfig, schema, instanceId, buildId, statements, namespace } =
-    buildResult.apiBuild;
-
-  if (databaseConfig.kind === "pglite") {
-    await shutdown({
-      reason: "The 'ponder serve' command does not support PGlite",
-      code: 1,
-    });
-    return cleanup;
-  }
-
-  const database = createDatabase({
-    common,
-    schema,
-    databaseConfig,
-    instanceId,
-    buildId,
-    statements,
-    namespace,
-  });
+  const { instanceId, buildId } = buildResult.apiBuild;
 
   const server = await createServer({
     common,
     app: buildResult.apiBuild.app,
     routes: buildResult.apiBuild.routes,
     graphqlSchema: buildResult.indexingBuild.graphqlSchema,
-    database,
     instanceId:
       process.env.PONDER_EXPERIMENTAL_INSTANCE_ID === undefined
         ? undefined
@@ -102,7 +81,6 @@ export async function serve({ cliOptions }: { cliOptions: CliOptions }) {
 
   cleanupReloadable = async () => {
     await server.kill();
-    await database.kill();
   };
 
   return cleanup;

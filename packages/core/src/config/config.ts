@@ -12,23 +12,6 @@ export type BlockConfig = {
   endBlock?: number;
 };
 
-type DatabaseConfig =
-  | {
-      kind: "pglite";
-      /** Directory path to use for PGlite database files. Default: `".ponder/pglite"`. */
-      directory?: string;
-    }
-  | {
-      kind: "postgres";
-      /** Postgres database connection string. Default: `DATABASE_PRIVATE_URL` > `DATABASE_URL` environment variable. */
-      connectionString?: string;
-      /** Postgres pool configuration passed to `node-postgres`. */
-      poolConfig?: {
-        /** Maximum number of clients in the pool. Default: `30`. */
-        max?: number;
-      };
-    };
-
 export type NetworkConfig<network> = {
   /** Chain ID of the network. */
   chainId: network extends { chainId: infer chainId extends number }
@@ -189,10 +172,8 @@ export const createConfig = <
   const contracts = {},
   const blocks = {},
 >(config: {
-  // TODO: add jsdoc to these properties.
   networks: NetworksConfig<Narrow<networks>>;
   contracts?: ContractsConfig<networks, Narrow<contracts>>;
-  database?: DatabaseConfig;
   blocks?: BlockFiltersConfig<networks, blocks>;
 }): CreateConfigReturnType<networks, contracts, blocks> =>
   config as Prettify<CreateConfigReturnType<networks, contracts, blocks>>;
@@ -200,7 +181,6 @@ export const createConfig = <
 export type Config = {
   networks: { [networkName: string]: NetworkConfig<unknown> };
   contracts: { [contractName: string]: GetContract };
-  database?: DatabaseConfig;
   blocks: {
     [sourceName: string]: GetBlockFilter<unknown>;
   };
@@ -209,6 +189,5 @@ export type Config = {
 export type CreateConfigReturnType<networks, contracts, blocks> = {
   networks: networks;
   contracts: contracts;
-  database?: DatabaseConfig;
   blocks: blocks;
 };
