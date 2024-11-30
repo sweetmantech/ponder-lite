@@ -1,7 +1,7 @@
 {
-  "name": "@ponder/core",
-  "version": "0.7.11",
-  "description": "An open-source framework for crypto application backends",
+  "name": "ponder-lite-core",
+  "version": "0.0.1",
+  "description": "A lightweight indexing framework for crypto application backends",
   "license": "MIT",
   "type": "module",
   "repository": {
